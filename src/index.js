@@ -1,4 +1,4 @@
-import { debounce } from 'lodash';
+import debounce from 'lodash.debounce';
 import { error } from '@pnotify/core';
 import '@pnotify/core/dist/BrightTheme.css';
 
@@ -7,132 +7,41 @@ import countryCardTpl from './countryCardTpl.hbs';
 import countryListTpl from './countryListTpl.hbs';
 import fetchCountry from './fetchCountries';
 
-const inputEl = document.querySelector('input');
+const input = document.querySelector('input');
 const cardContainer = document.querySelector('.card-container');
 
-inputEl.addEventListener('input', debounce(onInput, 500));
+input.addEventListener('input', debounce(onInputChange, 500));
 
-function onInput(e) {
-  resetPage();
-  const searchQuery = e.target.value;
-  fetchCountry(searchQuery)
-    .then(countries => {
-      if (countries.length > 10) {
-        error({
-          text: 'Too many matches found. Please enter a more specific query!',
-          mode: 'light',
-          closer: true,
-          sticker: false,
-          hide: true,
-          delay: 2000,
-        });
-        return;
-      }
-      if (countries.length <= 10 && countries.length > 1) {
-        renderCountriesList(countries);
-        return;
-      }
-      if (countries.length === 1) {
-        renderCountryCard(countries);
-        return;
-      }
-    })
-    .catch(onFetchError);
-}
+function onInputChange() {
+  let searchQuery = input.value;
 
-function renderCountryCard(country) {
-  const contryCardMarkup = countryCardTpl(country);
-  cardContainer.innerHTML = contryCardMarkup;
-}
-
-function renderCountriesList(countries) {
-  const contriesList = countryListTpl(countries);
-  cardContainer.innerHTML = contriesList;
-}
-
-function resetPage() {
   cardContainer.innerHTML = '';
+  if (input.value !== '' && input.value !== ' ' && input.value !== '.') {
+    fetchCountry(searchQuery).then(data => {
+      if (data.status === 404) {
+        pontyfyMassage('Nothing was found for your query!');
+      } else if (data.length > 10) {
+        pontyfyMassage('Too many matches found. Please enter more specific query!');
+      } else if (data.length === 1) {
+        const resultsMarkup = createMenuItemsMarkup(data);
+        cardContainer.insertAdjacentHTML('beforeend', resultsMarkup);
+      } else if (2 <= data.length <= 10) {
+        const resList = createItemsList(data);
+        cardContainer.insertAdjacentHTML('beforeend', resList);
+      }
+    });
+  }
 }
 
-function onFetchError(err) {
+function createMenuItemsMarkup(data) {
+  return countryCardTpl(data);
+}
+function createItemsList(data) {
+  return countryListTpl(data);
+}
+function pontyfyMassage(message) {
   error({
-    text: `${err}`,
-    mode: 'dark',
-    closer: true,
-    sticker: false,
-    hide: true,
-    delay: 2000,
+    title: `${message}`,
+    delay: 1200,
   });
 }
-
-// import { debounce } from 'lodash.debounce';
-// import { error } from '@pnotify/core';
-// import '@pnotify/core/dist/BrightTheme.css';
-
-// import './sass/main.scss';
-// import countryCardTpl from './countryCardTpl.hbs';
-// import countryListTpl from './countryListTpl.hbs';
-// import fetchCountry from './fetchCountries';
-
-// const refs = {
-//   input: document.querySelector('input'),
-//   cardContainer: document.querySelector('.card-container'),
-// };
-
-// refs.input.addEventListener('input', debounce(onInput, 500));
-
-// function onInput(event) {
-//   //const inputText = refs.input.value;
-//   resetPage();
-//   const searchQuery = event.turget.value;
-
-//   fetchCountry(searchQuery)
-//     .then(countries => {
-//       if (countries.length > 10) {
-//         error({
-//           text: 'Too many matches found. Please enter a more specific querty!',
-//           mode: 'light',
-//           closer: true,
-//           sticker: false,
-//           hide: true,
-//           delay: 2000,
-//         });
-//         return;
-//       }
-//       if (countries.length <= 10 && countries.length > 1) {
-//         renderCountriesList(countries);
-//         return;
-//       }
-
-//       if (countries.length === 1) {
-//         renderCountryCard(countries);
-//         return;
-//       }
-//     })
-//     .catch(onFetchError);
-// }
-
-// function renderCountryCard(country) {
-//   const countryCardMarkup = countryCardTpl(country);
-//   refs.cardContainer.innerHTML = countryCardMarkup;
-// }
-
-// function renderCountriesList(countries) {
-//   const countriesList = countryListTpl(countries);
-//   refs.cardContainer.innerHTML = countriesList;
-// }
-
-// function resetPage() {
-//   refs.cardContainer.innerHTML = '';
-// }
-
-// function onFetchError(err) {
-//   error({
-//     text: `${err}`,
-//     mode: 'dark',
-//     closer: true,
-//     sticker: false,
-//     hide: true,
-//     delay: 2000,
-//   });
-// }
